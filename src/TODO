@@ -1,0 +1,44 @@
+---------------------------------------------------------------------------------
+TODO
+
+pulling
+
+laser
+
+draw
+
+dont code buttons as entities, just make a different system
+    no reason to have multiple entities per cell other than buttons, so it's too much of an exception to make a general system
+
+
+
+---------------------------------------------------------------------------------
+DONE
+
+
+---------------------------------------------------------------------------------
+IDEAS
+
+draw by combining sprites dynamically
+
+can't push things onto yourself
+    rules would be too loose and easy
+    always need to push things onto others
+
+do legs have to be below?
+
+might have to limit to just
+    center + each four direction
+    going deeper too complicated
+
+ghost entities?
+
+numbered tools?
+    multiple tools that stack together
+
+can push tools onto uncontrolled objects and they will do stuff
+    push on a box will act as a spring that pushes things in front after player's turn
+
+    legs will move thing in direction of attachment
+
+    
