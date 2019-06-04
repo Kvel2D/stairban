@@ -103,7 +103,7 @@ class Gfx {
 
 	/** Rotates image drawing functions. */
 
-	public static function rotation(angle: Float, xpivot: Float = -15000, ypivot: Float = -15000) {
+	public static function rotation(angle: Float, xpivot: Float = 0, ypivot: Float = 0) {
 		imagerotate = angle;
 		imagerotatexpivot = xpivot;
 		imagerotateypivot = ypivot;

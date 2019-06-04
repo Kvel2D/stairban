@@ -11,10 +11,10 @@ enum GameState {
     GameState_Normal;
 }
 
-enum Tool {
-    Tool_None;
-    Tool_Legs;
-    Tool_Hand;
+enum ToolType {
+    ToolType_None;
+    ToolType_Sword;
+    ToolType_Shield;
 }
 
 enum Direction {
@@ -28,16 +28,20 @@ enum Direction {
 typedef Entity = {
     x: Int,
     y: Int,
-    dx: Int,
-    dy: Int,
-    z: Int,
-    name: String,
     controllable: Bool,
     controlled: Bool,
     colliding: Bool,
 
-    tool: Tool,
-    attached: Map<Direction, Array<Tool>>,
+    tool: ToolType,
+    attached: Map<Direction, Array<ToolType>>,
+
+    hp: Int,
+};
+
+typedef Tool = {
+    x: Int,
+    y: Int,
+    type: ToolType,
 };
 
 @:publicFields
@@ -46,41 +50,37 @@ class Main {
 
 static inline var SCREEN_WIDTH = 1600;
 static inline var SCREEN_HEIGHT = 960;
-static inline var TILESIZE = 64;
+static inline var TILESIZE = 32;
 static inline var WORLD_WIDTH = 6;
 static inline var WORLD_HEIGHT = 6;
-static inline var WORLD_SCALE = 2;
-static inline var MESSAGES_Y = 580;
-static inline var TEXT_SIZE = 10;
-static inline var Z_MIN = -1;
-static inline var Z_MAX = 1;
+static inline var WORLD_SCALE = 4;
+static inline var TEXT_SIZE = 30;
 
 var game_state = GameState_Normal;
 
 var tiles = Data.create2darray(WORLD_WIDTH, WORLD_HEIGHT, Tile.Floor);
 var entities = new Array<Entity>();
+var tools = new Array<Tool>();
 
 var cardinals: Array<Vec2i> = [{x: -1, y: 0}, {x: 1, y: 0}, {x: 0, y: 1}, {x: 0, y: -1}];
 
 var obj: SharedObject;
 
-function make_entity(x, y, name): Entity {
+function make_entity(x, y): Entity {
     var e = {
         x: x,
         y: y,
-        dx: 0,
-        dy: 0,
-        z: 0,
-        name: name,
         controllable: true,
         controlled: false,
         colliding: true,
 
-        tool: Tool_None,
-        attached: new Map<Direction, Array<Tool>>(),
+        tool: ToolType_None,
+        attached: new Map<Direction, Array<ToolType>>(),
+
+        hp: 6,
     };
     for (d in Type.allEnums(Direction)) {
-        e.attached[d] = new Array<Tool>();
+        e.attached[d] = new Array<ToolType>();
     }
     entities.push(e);
 
@@ -94,20 +94,21 @@ function new() {
     Text.setfont('pixelfj8');
     Gfx.loadtiles('tiles', TILESIZE, TILESIZE);
 
-    var kenic = make_entity(2, 3, 'Kenic');
+    var kenic = make_entity(2, 3);
     kenic.controlled = true;
-    kenic.attached[Direction_Down].push(Tool_Legs);
-    kenic.attached[Direction_Left].push(Tool_Hand);
-    kenic.attached[Direction_Right].push(Tool_Hand);
-    kenic.attached[Direction_Up].push(Tool_Hand);
-    make_entity(4, 3, 'Ahmp');
-    make_entity(5, 1, 'Jipple');
+    var enemy = make_entity(4, 3);
+    enemy.hp = 2;
 
-    var legs = make_entity(3, 4, 'Legs');
-    legs.tool = Tool_Legs;
-
-    var hands = make_entity(3, 2, 'Hands');
-    hands.tool = Tool_Hand;
+    tools.push({
+        x: 3,
+        y: 4,
+        type: ToolType_Shield,
+    });
+    tools.push({
+        x: 4,
+        y: 4,
+        type: ToolType_Sword,
+    });
 }
 
 inline function screen_x(x) {
@@ -138,43 +139,83 @@ function get_free_map(): Array<Array<Bool>> {
     return free_map;
 }
 
-function tool_string(tool: Tool): String {
+function tool_string(tool: ToolType): String {
     return switch (tool) {
-        case Tool_Legs: 'L';
-        case Tool_Hand: 'H';
-        case Tool_None: 'H';
+        case ToolType_Shield: 'Sh';
+        case ToolType_Sword: 'Sw';
+        case ToolType_None: 'N';
+    }
+}
+
+function tool_tile(tool: ToolType): Int {
+    return switch (tool) {
+        case ToolType_Shield: Tile.Shield;
+        case ToolType_Sword: Tile.Sword;
+        case ToolType_None: Tile.None;
+    }
+}
+
+function tool_free_tile(tool: ToolType): Int {
+    return switch (tool) {
+        case ToolType_Shield: Tile.ShieldFree;
+        case ToolType_Sword: Tile.SwordFree;
+        case ToolType_None: Tile.None;
     }
 }
 
 function draw_entity(e: Entity) {
     var radius = TILESIZE * WORLD_SCALE / 2;
+
     var circle_color = if (e.controlled) Col.BLUE else Col.NIGHTBLUE;
-    Gfx.drawcircle(screen_x(e.x) + radius, screen_y(e.y) + radius, radius, circle_color);
-    Text.display(screen_x(e.x) + radius - Text.width(e.name), screen_y(e.y) + radius, e.name, Col.PINK);
 
-    var down = '';
-    for (t in e.attached[Direction_Down]) {
-        down += tool_string(t) + ',';
-    }
-    Text.display(screen_x(e.x), screen_y(e.y) + radius * 1.5, down, Col.PINK);
+    Gfx.scale(WORLD_SCALE);
 
-    var up = '';
-    for (t in e.attached[Direction_Up]) {
-        up += tool_string(t);
-    }
-    Text.display(screen_x(e.x), screen_y(e.y), up, Col.PINK);
+    var tool_x = 0;
+    var tool_y = 0;
 
-    var left = '';
+    tool_y = screen_y(e.y);
     for (t in e.attached[Direction_Left]) {
-        left += tool_string(t);
+        Gfx.drawtile(screen_x(e.x), tool_y, tool_tile(t));
+        tool_y += 4 * WORLD_SCALE;
     }
-    Text.display(screen_x(e.x), screen_y(e.y) + radius, left, Col.PINK);
 
-    var right = '';
+    Gfx.rotation(180);
+    tool_y = screen_y(e.y);
     for (t in e.attached[Direction_Right]) {
-        right += tool_string(t);
+        Gfx.drawtile(screen_x(e.x) + radius * 2, tool_y + radius * 2, tool_tile(t));
+        tool_y -= 4 * WORLD_SCALE;
     }
-    Text.display(screen_x(e.x) + radius * 2, screen_y(e.y) + radius, right, Col.PINK);
+
+    Gfx.rotation(90);
+    tool_x = screen_x(e.x);
+    for (t in e.attached[Direction_Up]) {
+        Gfx.drawtile(tool_x + radius * 2, screen_y(e.y), tool_tile(t));
+        tool_x += 4 * WORLD_SCALE;
+    }
+
+    Gfx.rotation(-90);
+    tool_x = screen_x(e.x);
+    for (t in e.attached[Direction_Down]) {
+        Gfx.drawtile(tool_x, screen_y(e.y) + radius * 2, tool_tile(t));
+        tool_x += 4 * WORLD_SCALE;
+    }
+
+    Gfx.rotation(0);
+    
+    if (e.controlled) {
+        Gfx.drawtile(screen_x(e.x), screen_y(e.y), Tile.Player);
+    } else {
+        Gfx.drawtile(screen_x(e.x), screen_y(e.y), Tile.Enemy);
+    }
+
+    Text.display(screen_x(e.x) + radius - Text.width('${e.hp}') / 2, screen_y(e.y) + radius - Text.height('${e.hp}') / 2, '${e.hp}', Col.YELLOW);
+}
+
+function draw_tool(t: Tool) {
+    var radius = TILESIZE * WORLD_SCALE / 2;
+    var circle_color = Col.ORANGE;
+
+    Gfx.drawtile(screen_x(t.x), screen_y(t.y), tool_free_tile(t.type));
 }
 
 function print_entity(e: Entity) {
@@ -194,20 +235,15 @@ function render() {
         }
     }
 
-    for (e in entities) {
-        if (e.z < Z_MIN || e.z > Z_MAX) {
-            trace('entity has incorrect z = ${e.z}, entity = ${e}');
-        }
-    }
 
     Gfx.scale(1);
     Text.change_size(TEXT_SIZE);
-    for (z in Z_MIN...(Z_MAX + 1)) {
-        for (e in entities) {
-            if (e.z == z) {
-                draw_entity(e);
-            }
-        }
+    for (e in entities) {
+        draw_entity(e);
+    }
+
+    for (t in tools) {
+        draw_tool(t);
     }
 }
 
@@ -215,6 +251,15 @@ function entity_at(x: Int, y: Int): Entity {
     for (e in entities) {
         if (e.x == x && e.y == y) {
             return e;
+        }
+    }
+    return null;
+}
+
+function tool_at(x: Int, y: Int): Tool {
+    for (t in tools) {
+        if (t.x == x && t.y == y) {
+            return t;
         }
     }
     return null;
@@ -244,25 +289,13 @@ function get_dxdy(d: Direction): Vec2i {
     }
 }
 
-function push_onto(subject: Entity, pushed: Entity, dx: Int, dy: Int): Bool {
-    // Invert because the direction of pushing is inverse the direction of attachment
-    var direction = get_direction(-dx, -dy);
-
-    var success = false;
-
-    if (dy == -1 && pushed.tool == Tool_Legs && !contains(subject.attached[Direction_Down], Tool_Legs)) {
-        subject.attached[Direction_Down].push(Tool_Legs);
-        success = true;
-    } else if (pushed.tool == Tool_Hand && !contains(subject.attached[direction], pushed.tool)) {
-        subject.attached[direction].push(Tool_Hand);
-        success = true;
-    }
-
-    if (success) {
-        entities.remove(pushed);
-        return true;
-    } else {
-        return false;
+function opposite_direction(d: Direction): Direction {
+    return switch (d) {
+        case Direction_Right: Direction_Left;
+        case Direction_Left: Direction_Right;
+        case Direction_Up: Direction_Down;
+        case Direction_Down: Direction_Up;
+        case Direction_None: Direction_None;
     }
 }
 
@@ -270,7 +303,138 @@ function contains(array: Array<Dynamic>, thing: Dynamic): Bool {
     return array.indexOf(thing) != -1;
 }
 
+function combat(e1: Entity, e2: Entity, direction1: Direction) {
+    var direction2 = opposite_direction(direction1);
+
+    var attached1 = e1.attached[direction1];
+    var attached2 = e2.attached[direction2];
+
+    var e1_shields = 0;
+    var e1_swords = 0;
+    for (t in attached1) {
+        switch (t) {
+            case ToolType_Shield: e1_shields++;
+            case ToolType_Sword: e1_swords++;
+            case ToolType_None:
+        } 
+    }
+
+    var e2_shields = 0;
+    var e2_swords = 0;
+    for (t in attached2) {
+        switch (t) {
+            case ToolType_Shield: e2_shields++;
+            case ToolType_Sword: e2_swords++;
+            case ToolType_None:
+        } 
+    }
+
+    // e2 swords vs e1 shields
+    if (e1_shields >= e2_swords) {
+        for (i in 0...e2_swords) {
+            attached1.remove(ToolType_Shield);
+            attached2.remove(ToolType_Sword);
+        }
+    } else {
+        for (i in 0...e1_shields) {
+            attached1.remove(ToolType_Shield);
+            attached2.remove(ToolType_Sword);
+        }
+    }
+
+    // e1 swords attack e2 shields
+    if (e2_shields >= e1_swords) {
+        for (i in 0...e1_swords) {
+            attached2.remove(ToolType_Shield);
+            attached1.remove(ToolType_Sword);
+        }
+    } else {
+        for (i in 0...e2_shields) {
+            attached2.remove(ToolType_Shield);
+            attached1.remove(ToolType_Sword);
+        }
+    }
+
+    // Recount tools
+    e1_shields = 0;
+    e1_swords = 0;
+    for (t in attached1) {
+        switch (t) {
+            case ToolType_Shield: e1_shields++;
+            case ToolType_Sword: e1_swords++;
+            case ToolType_None:
+        } 
+    }
+
+    var e2_shields = 0;
+    var e2_swords = 0;
+    for (t in attached2) {
+        switch (t) {
+            case ToolType_Shield: e2_shields++;
+            case ToolType_Sword: e2_swords++;
+            case ToolType_None:
+        } 
+    }
+
+    // Actual hurting time
+    if (e1_swords > 0) {
+        e2.hp -= e1_swords;
+
+        for (i in 0...e1_swords) {
+            attached1.remove(ToolType_Sword);
+        }
+    }
+
+    if (e2_swords > 0) {
+        e1.hp -= e2_swords;
+
+        for (i in 0...e1_swords) {
+            attached2.remove(ToolType_Sword);
+        }
+    }
+
+    if (e2.hp <= 0) {
+        tools.push({
+            x: e2.x,
+            y: e2.y,
+            type: Random.pick([ToolType_Sword, ToolType_Shield]),
+        });
+
+        entities.remove(e2);
+    }
+}
+
 function update_normal() {
+    if (Input.justpressed(Key.SPACE)) {
+        var player: Entity = null;
+        for (e in entities) {
+            if (e.controlled) {
+                player = e;
+                break;
+            }
+        }
+
+        var ahmp: Entity = null;
+        for (e in entities) {
+            if (!e.controlled) {
+                ahmp = e;
+                break;
+            }
+        }
+
+        function attach_random_tools(attached: Array<ToolType>) {
+            attached.splice(0, attached.length);
+            var k = Random.int(1, 4);
+            for (i in 0...k) {
+                attached.push(Random.pick([ToolType_Sword, ToolType_Shield]));
+            }
+        }
+
+        attach_random_tools(player.attached[Direction_Right]);
+
+        attach_random_tools(ahmp.attached[Direction_Left]);
+    }
+
     var turn_ended = false;
 
     render();
@@ -354,79 +518,25 @@ function update_normal() {
 
             var new_x = player.x + player_dx;
             var new_y = player.y + player_dy;
-            var new_x2 = player.x + player_dx * 2;
-            var new_y2 = player.y + player_dy * 2;
 
             var free_map = get_free_map();
+            var free = free_map[new_x][new_y];
+            var tool = tool_at(new_x, new_y);
+            var entity = entity_at(new_x, new_y);
+            var direction = get_direction(player_dx, player_dy);
 
-            if (player != null && contains(player.attached[Direction_Down], Tool_Legs) && !out_of_bounds(new_x, new_y)) {
+            if (player != null && !out_of_bounds(new_x, new_y)) {
+                if (entity != null) {
+                    combat(player, entity, direction);
+                } else {
+                    if (tool != null) {
+                        // Attach tool
+                        player.attached[direction].push(tool.type);
+                        tools.remove(tool);
+                    }
 
-                if (free_map[new_x][new_y]) {
-                    // Free tile
                     player.x = new_x;
                     player.y = new_y;
-                } else if (!out_of_bounds(new_x2, new_y2)) {
-                    var direction = get_direction(player_dx, player_dy);
-
-                    if (contains(player.attached[direction], Tool_Hand)) {
-                        if (free_map[new_x2][new_y2]) {
-                            // Pushing onto free space
-                            var pushed_entity = entity_at(new_x, new_y);
-                            pushed_entity.x = new_x2;
-                            pushed_entity.y = new_y2;
-                            player.x = new_x;
-                            player.y = new_y;
-                        } else {
-                            var subject = entity_at(new_x2, new_y2);
-                            var pushed = entity_at(new_x, new_y);
-
-                            // Try to push onto
-                            if (push_onto(subject, pushed, player_dx, player_dy)) {
-                                player.x = new_x;
-                                player.y = new_y;
-                            }
-                        }
-                    }
-                }
-            }
-
-
-            for (e in entities) {
-                if (e.controlled) {
-                    continue;
-                }
-
-                for (d in Type.allEnums(Direction)) {
-                    if (contains(e.attached[d], Tool_Hand)) {
-                        var dxdy = get_dxdy(d);
-
-                        var new_x = e.x + dxdy.x;
-                        var new_y = e.y + dxdy.y;
-
-                        if (!out_of_bounds(new_x, new_y)) {
-                            var pushed = entity_at(new_x, new_y);
-
-
-                            if (pushed != null) {
-                                pushed.dx += dxdy.x;
-                                pushed.dy += dxdy.y;
-                            }
-                        }
-                    }
-                }
-            }
-
-            for (e in entities) {
-                if (e.controlled) {
-                    continue;
-                }
-
-                // NOTE: doesn't take into account conflicts
-                while (e.dx != 0 || e.dy != 0) {
-                    e.x += Math.sign(e.dx);
-                    e.y += Math.sign(e.dy);
-                    e.dx -= Math.sign(e.dx);
-                    e.dy -= Math.sign(e.dy);
                 }
             }
         }

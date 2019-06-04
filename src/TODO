@@ -1,14 +1,15 @@
 ---------------------------------------------------------------------------------
 TODO
 
-pulling
+could draw better to make understanding easier
+    stack shields on one side
+    stack swords on other
 
-laser
+make enemies drop items
 
-draw
+generate level
 
-dont code buttons as entities, just make a different system
-    no reason to have multiple entities per cell other than buttons, so it's too much of an exception to make a general system
+draw multiple tools
 
 
 
@@ -19,26 +20,23 @@ DONE
 ---------------------------------------------------------------------------------
 IDEAS
 
-draw by combining sprites dynamically
+mind control tool
+you control enemy when you move in on them
 
-can't push things onto yourself
-    rules would be too loose and easy
-    always need to push things onto others
+draw tools in random order so that it's not repetitive to see the same order again and again
 
-do legs have to be below?
+limit tools to 4 slots
+    could do 6, to stick with 6's
 
-might have to limit to just
-    center + each four direction
-    going deeper too complicated
+laser
 
-ghost entities?
+multiple tools per cell?
 
-numbered tools?
-    multiple tools that stack together
+when not enough space for tools
+    destroy?
+    leave?
+    dont allow to pick up
 
-can push tools onto uncontrolled objects and they will do stuff
-    push on a box will act as a spring that pushes things in front after player's turn
-
-    legs will move thing in direction of attachment
-
-    
+push tool, that pushes after player moves
+    (so don't need actual input, can go next to entity and it will be pushed)
+    kind of like a different kind of defense
