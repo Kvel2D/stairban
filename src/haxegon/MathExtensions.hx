@@ -10,6 +10,12 @@ typedef Vec2i = {
     y: Int
 }
 
+typedef Vec3i = {
+    x: Int,
+    y: Int,
+    z: Int
+}
+
 @:publicFields
 class MathExtensions {
 

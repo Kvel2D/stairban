@@ -1,42 +1,22 @@
----------------------------------------------------------------------------------
+------------------------------------------------------------------------------------
 TODO
 
-could draw better to make understanding easier
-    stack shields on one side
-    stack swords on other
+printing whole level as string
 
-make enemies drop items
-
-generate level
-
-draw multiple tools
+box goal placement
 
 
-
----------------------------------------------------------------------------------
-DONE
-
-
----------------------------------------------------------------------------------
+------------------------------------------------------------------------------------
 IDEAS
 
-mind control tool
-you control enemy when you move in on them
+could do more complex tetrominoe shapes
+    but need to consider whether this can fit mechanically and if it works
+    will need to determine how they fall etc
 
-draw tools in random order so that it's not repetitive to see the same order again and again
+could potentially make boxes move like player on stairs, need to check if it works well as a mechanic
 
-limit tools to 4 slots
-    could do 6, to stick with 6's
-
-laser
-
-multiple tools per cell?
-
-when not enough space for tools
-    destroy?
-    leave?
-    dont allow to pick up
-
-push tool, that pushes after player moves
-    (so don't need actual input, can go next to entity and it will be pushed)
-    kind of like a different kind of defense
+what happens if you push a box with a thing on it
+    currently can't push
+    other options:
+        you push the box and the thing
+        you push the box and now the thing is on top of you

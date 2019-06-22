@@ -18,6 +18,8 @@ class GUI {
 	static var slider_handle_color = Col.PINK;
 	static var slider_text_color = Col.WHITE;
 
+	static var hovering_button = false;
+
 
 	static function set_pallete(off: Int, on: Int, text_off: Int, text_on: Int) {
 		button_off_color = off;
@@ -62,6 +64,8 @@ class GUI {
 		var button_height = text_height * 1.25;
 
 		if (Math.point_box_intersect(Mouse.x, Mouse.y, button_x, button_y, button_width, button_height)) {
+			hovering_button = true;
+			
 			Gfx.fillbox(button_x, button_y, button_width, button_height, button_on_color);
 			if (Mouse.leftclick()) {
 				return true;

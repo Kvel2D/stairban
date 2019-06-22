@@ -271,6 +271,10 @@ class Gfx {
 		images.push(t);
 	}
 
+	public static function imageexists(imagename: String): Bool {
+		return imageindex.exists(imagename);
+	}
+
 	/** Resizes an image to a new size and stores it with the same label. */
 
 	public static function resizeimage(imagename: String, scale: Float) {
@@ -640,7 +644,7 @@ class Gfx {
 		return y;
 	}
 
-	public static function draw_line(_x1: Float, _y1: Float, _x2: Float, _y2: Float, col: Int, alpha: Float = 1.0) {
+	public static function drawline(_x1: Float, _y1: Float, _x2: Float, _y2: Float, col: Int, alpha: Float = 1.0) {
 		if (!clearscreeneachframe) if (skiprender && drawingtoscreen) return;
 		tempshape.graphics.clear();
 		tempshape.graphics.lineStyle(line_thickness, col, alpha);
