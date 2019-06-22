@@ -76,6 +76,7 @@ function new() {
     Gfx.resizescreen(SCREEN_WIDTH, SCREEN_HEIGHT);
     Gfx.loadtiles('isometric_tiles', 27, 30);
     Gfx.loadtiles('tiles', 8, 8);
+    Gfx.createimage('tiles_canvas', Game.TILESIZE * Game.WORLD_WIDTH, Game.TILESIZE * Game.WORLD_HEIGHT);
 
     var level_list_file = SharedObject.getLocal('level-list');
     if (level_list_file.data.level_list == null) {
@@ -135,7 +136,7 @@ function update() {
             }
             Main.load_level(name);
             Gfx.drawtoimage(name);
-            Game.render();
+            Game.render(name);
             Gfx.drawtoscreen();
         }
 

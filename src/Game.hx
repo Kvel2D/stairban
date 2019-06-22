@@ -94,11 +94,13 @@ static var ISO_OFFSET_Z = 15;
 static var ISO_ORIGIN_X = 1400;
 static var ISO_ORIGIN_Y = 100;
 
-static function render() {
+static var tiles_cache = [for (x in 0...WORLD_WIDTH) [for (y in 0...WORLD_HEIGHT) Tile.None]];
+
+static function render(drawing_to_image: String = null) {
     Gfx.clearscreen(Col.LIGHTBLUE);
 
-    Gfx.scale(RENDER_SCALE);
-
+    Gfx.drawtoimage('tiles_canvas');
+    Gfx.scale(1);
     for (x in 0...WORLD_WIDTH) {
         for (y in 0...WORLD_HEIGHT) {
             var tile = if (!walls[x][y][0] && !walls[x][y][1]) {
@@ -113,10 +115,21 @@ static function render() {
                 Tile.None;
             }
 
-            // TODO: need to draw bridges above things under but below things above??? ugh...
-            Gfx.drawtile(screenx(x), screeny(y), tile);
+            if (tile != tiles_cache[x][y]) {
+                Gfx.drawtile(x * TILESIZE, y * TILESIZE, tile);
+                tiles_cache[x][y] = tile;
+            }
         }
     }
+
+    if (drawing_to_image == null) {
+        Gfx.drawtoscreen();
+    } else {
+        Gfx.drawtoimage(drawing_to_image);
+    }
+
+    Gfx.scale(RENDER_SCALE);
+    Gfx.drawimage(0, 0, 'tiles_canvas');
 
     for (e in entities) {
         // TODO: select stair tile

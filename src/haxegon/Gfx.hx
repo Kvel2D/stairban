@@ -1191,5 +1191,5 @@ class Gfx {
 
     public static var initrun: Bool;
     public static var skiprender: Bool;
-    private static var drawingtoscreen: Bool;
+    public static var drawingtoscreen: Bool;
 }
